@@ -7,7 +7,8 @@
     "url": "https://github.com/shycherry/itemTagsWatcher.git"
   },
   "main":"./watcher.js",  
-  "dependencies": {    
-    "itemTagsDB": "git://github.com/shycherry/itemTagsDB.git#master"
+  "dependencies": {
+    "itemTagsDB": "git://github.com/shycherry/itemTagsDB.git#master",
+    "ftp": ">=0.3.4"
   }
 }
