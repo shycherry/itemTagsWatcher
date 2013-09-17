@@ -1,0 +1,13 @@
+{
+  "name": "itemTagsWatcher",
+  "version": "0.0.1",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shycherry/itemTagsWatcher.git"
+  },
+  "main":"nwIndex.html",  
+  "dependencies": {    
+    "itemTagsDB": "git://github.com/shycherry/itemTagsDB.git#master"
+  }
+}
