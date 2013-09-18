@@ -3,7 +3,8 @@
 <head>
     <title>itemTagsWatcher Debug</title>    
     <script>      
-      var watcher = require('../watcher')({database:'itemTagsDB', configDB:'testConfigDB'})      
+      var watcher = require('../watcher')({configDB:'testConfigDB'})
+      watcher.on('ready', function(){watcher.doFtpWatch()})
     </script>
 </head>
 <body>
