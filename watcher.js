@@ -1,4 +1,4 @@
-﻿EventEmitter = require('events').EventEmitter;
+EventEmitter = require('events').EventEmitter;
 inherits = require('util').inherits;
 
 var Watcher = module.exports = function (options) {
@@ -18,7 +18,7 @@ inherits(Watcher, EventEmitter);
 * exposed API
 */
 Watcher.prototype.configure = configure;
-Watcher.prototype.listFtp = listFtp;
+Watcher.prototype.handleFtpPaths = handleFtpPaths;
 Watcher.prototype.doFtpWatch = doFtpWatch;
 Watcher.prototype.getDB = function(){return this._itDB;};
 
@@ -45,29 +45,45 @@ function configure(options){
 function doFtpWatch(){
   var self = this;
   if(!this._configDB){return;}
-  this._configDB.fetchItemsSharingTags(['@ftpWatchingSet'], function(err, items){
+  this._configDB.fetchItemsSharingTags(['@ftpWatchPath'], function(err, items){
     if(!err){
       for(var iSet = 0; iSet<items.length; iSet++){
-        var ftpWatchingSet = items[iSet];
-        self._configDB.fetchOne(ftpWatchingSet.ftpConfig, (function(ftpWatchingSet){
+        var ftpWatchedPath = items[iSet];
+        self._configDB.fetchOne(ftpWatchedPath.ftpConfig, (function(ftpWatchedPath){
           return function(err, itemFtpConfig){
             if(!err){
-              self.listFtp(itemFtpConfig.config, ftpWatchingSet.path);
+              self.handleFtpPaths(itemFtpConfig.config, ftpWatchedPath.path, function(err, report){
+                for(var i in report){
+                  console.log(report[i]);
+                }
+              });
             }
           };
-        })(ftpWatchingSet));
+        })(ftpWatchedPath));
       }
     }
   });
 }
 
-function listFtp(ftpConfig, path){
+function handleFtpPaths(iFtpConfig, iPath, iCallback){
   var ftp = require('ftp')();
+  var Url = require('url');
+  var baseFtpUri = Url.format({
+    protocol: 'ftp',
+    hostname: iFtpConfig.host,
+    auth: iFtpConfig.user+':'+iFtpConfig.password
+  });
+  baseFtpUri = Url.resolve(baseFtpUri, iPath);
+  var report = {};
+
   ftp.on('ready', function(){
-    ftp.list(path, function(err, list){
-      console.dir(list);
+    ftp.list(iPath, function(err, list){
+      for(var i in list){
+        report[i] = encodeURI(baseFtpUri+'/'+list[i].name);
+      }
       ftp.end();
+      iCallback(undefined, report);
     });
   });
-  ftp.connect(ftpConfig);
+  ftp.connect(iFtpConfig);
 }
