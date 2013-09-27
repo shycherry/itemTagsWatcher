@@ -19,9 +19,10 @@ inherits(Watcher, EventEmitter);
 */
 Watcher.prototype.configure = configure;
 Watcher.prototype.handleFtpPaths = handleFtpPaths;
-Watcher.prototype.doFtpWatch = doFtpWatch;
+Watcher.prototype.handleDummyReport = handleDummyReport;
+Watcher.prototype.handleReport = handleReport;
+Watcher.prototype.doWatch = doWatch;
 Watcher.prototype.getDB = function(){return this._itDB;};
-
 
 /**
 * methods
@@ -42,7 +43,7 @@ function configure(options){
   }
 }
 
-function doFtpWatch(){
+function doWatch(){
   var self = this;
   if(!this._configDB){return;}
   this._configDB.fetchItemsSharingTags(['@ftpWatchPath'], function(err, items){
@@ -52,7 +53,7 @@ function doFtpWatch(){
         self._configDB.fetchOne(ftpWatchedPath.ftpConfig, (function(ftpWatchedPath){
           return function(err, itemFtpConfig){
             if(!err){
-              self.handleFtpPaths(itemFtpConfig.config, ftpWatchedPath.path, function(err, report){
+              self.handleFtpPaths(itemFtpConfig.config, ftpWatchedPath.path, ftpWatchedPath.tagWith, function(err, report){
                 for(var i in report){
                   console.log(report[i]);
                 }
@@ -65,7 +66,7 @@ function doFtpWatch(){
   });
 }
 
-function handleFtpPaths(iFtpConfig, iPath, iCallback){
+function handleFtpPaths(iFtpConfig, iPath, iTagWith, iCallback){
   var ftp = require('ftp')();
   var Url = require('url');
   var baseFtpUri = Url.format({
@@ -79,11 +80,65 @@ function handleFtpPaths(iFtpConfig, iPath, iCallback){
   ftp.on('ready', function(){
     ftp.list(iPath, function(err, list){
       for(var i in list){
-        report[i] = encodeURI(baseFtpUri+'/'+list[i].name);
+        report[i] = {
+          'uri':encodeURI(baseFtpUri+'/'+list[i].name),
+          'tagWith': iTagWith
+        };
       }
       ftp.end();
       iCallback(undefined, report);
     });
   });
+
+  ftp.on('error', function(err){
+    console.log('error: '+err);
+    //TODO : handle this
+  });
+
   ftp.connect(iFtpConfig);
+}
+
+function _uriFilter_(iUri){
+  return function(item){
+    return item.uri == iUri;
+  };
+}
+
+function handleReport(iReport){
+  if(!this._itDB){return;}
+  var self = this;
+
+  for(var iEntry in iReport){
+    var entry = iReport[iEntry];
+    
+    this._itDB.fetchOneByFilter(_uriFilter_(entry.uri), (function(iEntry){
+      return function(err, item){
+        if(err){
+          self._itDB.save({
+            'uri':iEntry['uri'],
+            'tags':iEntry['tagWith']
+          },function(){});
+        }else{
+          item.tags = iEntry['tagWith'];
+          self._itDB.save(item, function(){});
+        }
+      };
+    })(entry));
+    
+  }
+}
+
+function handleDummyReport(){
+  this.handleReport({
+    1:{
+      'uri':'ftp://bidule:truc@serveur.fr:21/path/to/heaven.avi',
+      'tagWith':['heaven','ftpFile'],
+    },
+    
+    2:{
+      'uri':'ftp://bidule:truc@serveur.fr:21/path/to/hell.avi',
+      'tagWith':['hell','ftpFile'], 
+    },
+
+  });
 }
