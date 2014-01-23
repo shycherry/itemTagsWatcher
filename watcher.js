@@ -18,9 +18,10 @@ inherits(Watcher, EventEmitter);
 * exposed API
 */
 Watcher.prototype.configure = configure;
-Watcher.prototype.handleFtpPaths = handleFtpPaths;
-Watcher.prototype.handleDummyReport = handleDummyReport;
-Watcher.prototype.handleReport = handleReport;
+Watcher.prototype._handleWatchPath_ = _handleWatchPath_;
+Watcher.prototype._handleFtpPaths_ = _handleFtpPaths_;
+Watcher.prototype._handleDummyPaths_ = _handleDummyPaths_;
+Watcher.prototype._handleReport_ = _handleReport_;
 Watcher.prototype.doWatch = doWatch;
 Watcher.prototype.getDB = function(){return this._itDB;};
 
@@ -46,27 +47,52 @@ function configure(options){
 function doWatch(){
   var self = this;
   if(!this._configDB){return;}
-  this._configDB.fetchItemsSharingTags(['@ftpWatchPath'], function(err, items){
+  this._configDB.fetchItemsSharingTags(['@watchPath'], function(err, items){
     if(!err){
-      for(var iSet = 0; iSet<items.length; iSet++){
-        var ftpWatchedPath = items[iSet];
-        self._configDB.fetchOne(ftpWatchedPath.ftpConfig, (function(ftpWatchedPath){
-          return function(err, itemFtpConfig){
-            if(!err){
-              self.handleFtpPaths(itemFtpConfig.config, ftpWatchedPath.path, ftpWatchedPath.tagWith, function(err, report){
-                for(var i in report){
-                  console.log(report[i]);
-                }
-              });
-            }
-          };
-        })(ftpWatchedPath));
+      var watchingQueue = require('async').queue(self._handleWatchPath_, 3);
+      watchingQueue.drain = function(){console.log('drain');};
+      watchingQueue.saturated = function(){console.log('a task is pending... queueing !');};
+
+      for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
+        var currentWatchPath = items[watchPathIdx];
+        currentWatchPath.this = self;
+        watchingQueue.push(currentWatchPath, function(err, report){
+          if(!err){
+            self._handleReport_(report);
+            console.log(report);
+          }else{
+            console.log('error : '+err);
+          }
+        });
       }
     }
   });
 }
 
-function handleFtpPaths(iFtpConfig, iPath, iTagWith, iCallback){
+function _handleWatchPath_(iWatchPathItem, iCallback){
+  var self = iWatchPathItem.this;
+  if(iWatchPathItem.xorHasTags(['@ftpWatchPath'])){
+    
+    self._configDB.fetchOne(iWatchPathItem.ftpConfig, (function(iWatchPathItem){
+      return function(err, itemFtpConfig){
+        if(!err){
+          self._handleFtpPaths_(itemFtpConfig.config, iWatchPathItem.path, iWatchPathItem.tagWith, function(err, report){
+            iCallback(err, report);
+          });
+        }
+      };
+    })(iWatchPathItem));
+  
+  }else if(iWatchPathItem.xorHasTags(['@dummyWatchPath'])){
+    
+    self._handleDummyPaths_(iWatchPathItem, function(err, report){
+      iCallback(err, report);
+    });
+
+  }
+}
+
+function _handleFtpPaths_(iFtpConfig, iPath, iTagWith, iCallback){
   var ftp = require('ftp')();
   var Url = require('url');
   var baseFtpUri = Url.format({
@@ -91,8 +117,7 @@ function handleFtpPaths(iFtpConfig, iPath, iTagWith, iCallback){
   });
 
   ftp.on('error', function(err){
-    console.log('error: '+err);
-    //TODO : handle this
+    iCallback(err);
   });
 
   ftp.connect(iFtpConfig);
@@ -104,7 +129,7 @@ function _uriFilter_(iUri){
   };
 }
 
-function handleReport(iReport){
+function _handleReport_(iReport){
   if(!this._itDB){return;}
   var self = this;
 
@@ -119,7 +144,7 @@ function handleReport(iReport){
             'tags':iEntry['tagWith']
           },function(){});
         }else{
-          item.tags = iEntry['tagWith'];
+          item.addTags(iEntry['tagWith']);
           self._itDB.save(item, function(){});
         }
       };
@@ -128,8 +153,8 @@ function handleReport(iReport){
   }
 }
 
-function handleDummyReport(){
-  this.handleReport({
+function _handleDummyPaths_(iDummyWatchPath, iCallback){
+  var report = {
     1:{
       'uri':'ftp://bidule:truc@serveur.fr:21/path/to/heaven.avi',
       'tagWith':['heaven','ftpFile'],
@@ -137,8 +162,11 @@ function handleDummyReport(){
     
     2:{
       'uri':'ftp://bidule:truc@serveur.fr:21/path/to/hell.avi',
-      'tagWith':['hell','ftpFile'], 
+      'tagWith':['hell','ftpFile'],
     },
 
-  });
+  };
+
+  iCallback(undefined, report);
+
 }

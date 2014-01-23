@@ -9,6 +9,7 @@
   "main":"./watcher.js",  
   "dependencies": {
     "itemTagsDB": "git://github.com/shycherry/itemTagsDB.git#master",
-    "ftp": ">=0.3.4"
+    "ftp": ">=0.3.4",
+    "async": ">=0.2.9"
   }
 }

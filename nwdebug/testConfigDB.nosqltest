@@ -1,0 +1,5 @@
+{"config":{"host":"test.host.org","user":"username","password":"mypassword"},"uuid":"647e9d60-1fe8-11e3-9d75-53be0f0ffafc","tags":["@ftpConfig"]}
+{"uuid":"2b5668b0-20a6-11e3-a219-83959b5cd4c9","database":"itemTagsDB","tags":["@watcherConfig"]}
+{"uuid":"d54d9ae0-20b1-11e3-b95a-f3b6dfdd69a4","tags":["@watchPath","@ftpWatchPath"],"ftpConfig":"647e9d60-1fe8-11e3-9d75-53be0f0ffafc","path":"/vinpowful", "tagWith":["perso", "ftp"]}
+{"uuid":"3e25fae0-20b6-11e3-8b07-75901c517014","tags":["@watchPath","@ftpWatchPath"],"ftpConfig":"647e9d60-1fe8-11e3-9d75-53be0f0ffafc","path":"/ISOs", "tagWith":["ftp", "isos"]}
+{"uuid":"a20eeee0-2935-11e3-a08b-0b7e20667f65", "tags":["@dummyWatchPath", "@watchPath"]}
