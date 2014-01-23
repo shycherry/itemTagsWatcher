@@ -35,7 +35,7 @@ function configure(options){
     this._configDB.fetchItemsSharingTags(['@watcherConfig'], function(err, items){
       if(!err){
         var watcherConfig = items[0];
-        if(watcherConfig.database){
+        if(watcherConfig && watcherConfig.database){
           self._itDB = require('itemTagsDB')({database: watcherConfig.database});
           self.emit('ready');
         }
