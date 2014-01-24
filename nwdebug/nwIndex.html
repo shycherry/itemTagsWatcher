@@ -2,16 +2,29 @@
 <html>
 <head>
     <title>itemTagsWatcher Debug</title>    
-    <script>      
+    <script>  
+      var watcherReady = null;
+      
       var watcher = require('../watcher')({configDB:'testConfigDB'})
       watcher.on('ready', function(){
-      	watcher.doWatch(function(){
-      		console.log('watch finished !');
-      	});
-      });
+        watcherReady = watcher;
+      });  
+      
+      var clickAndWatch = function(){
+        if(watcherReady){
+          watcherReady.doWatch(function(){
+              console.log('watch finished !');
+          });  
+        }else{
+          console.log('watcher is not Ready');
+        }
+      }
+      
+      clickAndWatch();
     </script>
 </head>
 <body>
   watcha ! use 'watcher' to debug
+  <button onclick ="clickAndWatch()">doWatch</button>
 </body>
 </html>

@@ -55,9 +55,9 @@ function doWatch(iCallback){
       watchingQueue.drain = function(){console.log('drain');};
       watchingQueue.saturated = function(){console.log('a task is pending... queueing !');};
 
-      var watchPathsProcessed = 0;
+      var watchPathReportsProcessed = 0;
       function callbackIfComplete(err){
-        if((watchPathsProcessed == items.length) && iCallback)
+        if((watchPathReportsProcessed == items.length) && iCallback)
             iCallback(err);
       }
 
@@ -65,16 +65,16 @@ function doWatch(iCallback){
         var currentWatchPath = items[watchPathIdx];
         currentWatchPath.this = self;
         watchingQueue.push(currentWatchPath, function(err, report){
-
-          watchPathsProcessed ++;
           
           if(!err){
             console.log(report);
             self._handleReport_(report, function(err){
+              watchPathReportsProcessed ++;
               callbackIfComplete(err);
             });            
           }else{          
             console.log(err);
+            watchPathReportsProcessed ++;
             callbackIfComplete(err);
           }
 
