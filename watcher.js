@@ -1,5 +1,6 @@
 EventEmitter = require('events').EventEmitter;
 inherits = require('util').inherits;
+Async = require('async');
 
 var Watcher = module.exports = function (options) {
 
@@ -49,27 +50,37 @@ function doWatch(iCallback){
   if(!this._configDB){return;}
   this._configDB.fetchItemsSharingTags(['@watchPath'], function(err, items){
     if(!err){
-      var watchingQueue = require('async').queue(self._handleWatchPath_, 3);
+      var watchingQueue = Async.queue(self._handleWatchPath_, 3);
       watchingQueue.empty = function(){console.log('queue is empty');};
-      watchingQueue.drain = function(){
-        console.log('drain');
-        if(iCallback)
-            iCallback();
-      };
+      watchingQueue.drain = function(){console.log('drain');};
       watchingQueue.saturated = function(){console.log('a task is pending... queueing !');};
+
+      var watchPathsProcessed = 0;
+      function callbackIfComplete(err){
+        if((watchPathsProcessed == items.length) && iCallback)
+            iCallback(err);
+      }
 
       for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
         var currentWatchPath = items[watchPathIdx];
         currentWatchPath.this = self;
         watchingQueue.push(currentWatchPath, function(err, report){
+
+          watchPathsProcessed ++;
+          
           if(!err){
-            self._handleReport_(report);
             console.log(report);
-          }else{
-            console.log('error : '+err);
+            self._handleReport_(report, function(err){
+              callbackIfComplete(err);
+            });            
+          }else{          
+            console.log(err);
+            callbackIfComplete(err);
           }
-        });
+
+        });      
       }
+    
     }
   });
 }
@@ -135,28 +146,47 @@ function _uriFilter_(iUri){
   };
 }
 
-function _handleReport_(iReport){
-  if(!this._itDB){return;}
+function _handleReport_(iReport, iCallback){
+  if(!this._itDB){
+    if(iCallback)
+      iCallback('no db');
+    return;
+  }
+  if(!iCallback)
+    iCallback = function(){};
+
   var self = this;
 
+  var Entries = [];
   for(var iEntry in iReport){
-    var entry = iReport[iEntry];
-    
-    this._itDB.fetchOneByFilter(_uriFilter_(entry.uri), (function(iEntry){
+    Entries.push(iReport[iEntry]);
+  }
+
+  function handleNextEntry(iCallback){
+    var entry = Entries.shift();
+    self._itDB.fetchOneByFilter(_uriFilter_(entry.uri), (function(iEntry){
       return function(err, item){
         if(err){
-          self._itDB.save({
+          var newItem = {
             'uri':iEntry['uri'],
             'tags':iEntry['tagWith']
-          },function(){});
+          };
+          self._itDB.save(newItem, function(){
+            if(iCallback)
+              iCallback();
+          });
         }else{
           item.addTags(iEntry['tagWith']);
-          self._itDB.save(item, function(){});
+          self._itDB.save(item, function(){
+            if(iCallback)
+              iCallback();
+          });
         }
       };
     })(entry));
-    
   }
+
+  Async.until( function(){return (Entries.length <= 0)}, handleNextEntry, iCallback);
 }
 
 function _handleDummyPaths_(iDummyWatchPath, iCallback){

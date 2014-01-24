@@ -4,7 +4,11 @@
     <title>itemTagsWatcher Debug</title>    
     <script>      
       var watcher = require('../watcher')({configDB:'testConfigDB'})
-      watcher.on('ready', function(){watcher.doWatch()})
+      watcher.on('ready', function(){
+      	watcher.doWatch(function(){
+      		console.log('watch finished !');
+      	});
+      });
     </script>
 </head>
 <body>
