@@ -44,13 +44,17 @@ function configure(options){
   }
 }
 
-function doWatch(){
+function doWatch(iCallback){
   var self = this;
   if(!this._configDB){return;}
   this._configDB.fetchItemsSharingTags(['@watchPath'], function(err, items){
     if(!err){
       var watchingQueue = require('async').queue(self._handleWatchPath_, 3);
-      watchingQueue.drain = function(){console.log('drain');};
+      watchingQueue.drain = function(){
+        console.log('drain');
+        if(iCallback)
+          iCallback();
+      };
       watchingQueue.saturated = function(){console.log('a task is pending... queueing !');};
 
       for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
