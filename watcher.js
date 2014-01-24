@@ -50,11 +50,12 @@ function doWatch(iCallback){
   this._configDB.fetchItemsSharingTags(['@watchPath'], function(err, items){
     if(!err){
       var watchingQueue = require('async').queue(self._handleWatchPath_, 3);
-      watchingQueue.drain = function(){
-        console.log('drain');
+      watchingQueue.empty = function(){
+        console.log('queue is empty');
         if(iCallback)
-          iCallback();
-      };
+            iCallback();
+      }
+      watchingQueue.drain = function(){console.log('drain');};
       watchingQueue.saturated = function(){console.log('a task is pending... queueing !');};
 
       for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
