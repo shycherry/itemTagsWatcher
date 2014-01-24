@@ -106,8 +106,9 @@ function _handleFtpPaths_(iFtpConfig, iPath, iTagWith, iCallback){
   ftp.on('ready', function(){
     ftp.list(iPath, function(err, list){
       for(var i in list){
+        var relativePath = (list[i].name)? list[i].name : '/';
         report[i] = {
-          'uri':encodeURI(baseFtpUri+'/'+list[i].name),
+          'uri':encodeURI(Url.resolve(baseFtpUri, relativePath)),
           'tagWith': iTagWith
         };
       }
@@ -155,12 +156,12 @@ function _handleReport_(iReport){
 
 function _handleDummyPaths_(iDummyWatchPath, iCallback){
   var report = {
-    1:{
+    0:{
       'uri':'ftp://bidule:truc@serveur.fr:21/path/to/heaven.avi',
       'tagWith':['heaven','ftpFile'],
     },
     
-    2:{
+    1:{
       'uri':'ftp://bidule:truc@serveur.fr:21/path/to/hell.avi',
       'tagWith':['hell','ftpFile'],
     },
