@@ -8,7 +8,7 @@
   },
   "main":"./watcher.js",  
   "dependencies": {
-    "itemTagsDB": "git://github.com/shycherry/itemTagsDB.git#master",
+    "itemTagsDB": "https://github.com/shycherry/itemTagsDB/tarball/master",
     "ftp": ">=0.3.4",
     "async": ">=0.2.9"
   }
