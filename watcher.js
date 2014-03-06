@@ -117,14 +117,17 @@ function _handleFtpPaths_(iFtpConfig, iPath, iTagWith, iCallback){
     auth: iFtpConfig.user+':'+iFtpConfig.password
   });
   baseFtpUri = Url.resolve(baseFtpUri, iPath);
+  if(baseFtpUri[baseFtpUri.length-1] !== '/'){
+    baseFtpUri+='/';
+  }
   var report = {};
 
   ftp.on('ready', function(){
     ftp.list(iPath, function(err, list){
       for(var i in list){
-        var relativePath = (list[i].name)? list[i].name : '/';
+        var fileOrDirName = (list[i].name)? list[i].name : '';
         report[i] = {
-          'uri':encodeURI(Url.resolve(baseFtpUri, relativePath)),
+          'uri':encodeURI(Url.resolve(baseFtpUri, fileOrDirName)),
           'tagWith': iTagWith
         };
       }
