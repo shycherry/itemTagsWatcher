@@ -127,7 +127,7 @@ function _handleFtpPaths_(iFtpConfig, iPath, iTagWith, iCallback){
       for(var i in list){
         var fileOrDirName = (list[i].name)? list[i].name : '';
         report[i] = {
-          'uri':encodeURI(Url.resolve(baseFtpUri, fileOrDirName)),
+          'uri': Url.resolve(baseFtpUri, fileOrDirName),
           'tagWith': iTagWith
         };
       }
