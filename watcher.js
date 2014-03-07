@@ -1,6 +1,7 @@
-EventEmitter = require('events').EventEmitter;
-inherits = require('util').inherits;
-Async = require('async');
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('util').inherits;
+var Async = require('async');
+var Path = require('path');
 
 var Watcher = module.exports = function (options) {
 
@@ -172,7 +173,8 @@ function _handleReport_(iReport, iCallback){
         if(err){
           var newItem = {
             'uri':iEntry['uri'],
-            'tags':iEntry['tagWith']
+            'tags':iEntry['tagWith'],
+            'name':decodeURI(Path.basename(iEntry['uri']))
           };
           self._itDB.save(newItem, function(){
             if(iCallback)
