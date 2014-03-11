@@ -23,8 +23,9 @@ Watcher.prototype.configure = configure;
 Watcher.prototype._handleWatchPath_ = _handleWatchPath_;
 Watcher.prototype._handleFtpPaths_ = _handleFtpPaths_;
 Watcher.prototype._handleDummyPaths_ = _handleDummyPaths_;
-Watcher.prototype._handleReport_ = _handleReport_;
+Watcher.prototype._handleWatchReport_ = _handleWatchReport_;
 Watcher.prototype.doWatch = doWatch;
+Watcher.prototype.doDiff = doDiff;
 Watcher.prototype.getDB = function(){return this._itDB;};
 
 /**
@@ -46,6 +47,10 @@ function configure(options){
   }
 }
 
+function doDiff(iCallback){
+  
+}
+
 function doWatch(iCallback){
   var self = this;
   if(!this._configDB){return;}
@@ -65,11 +70,11 @@ function doWatch(iCallback){
       for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
         var currentWatchPath = items[watchPathIdx];
         currentWatchPath.this = self;
-        watchingQueue.push(currentWatchPath, function(err, report){
+        watchingQueue.push(currentWatchPath, function(err, iWatchReport){
           
           if(!err){
-            console.log(report);
-            self._handleReport_(report, function(err){
+            console.log(iWatchReport);
+            self._handleWatchReport_(iWatchReport, function(err){
               watchPathReportsProcessed ++;
               callbackIfComplete(err);
             });            
@@ -150,7 +155,7 @@ function _uriFilter_(iUri){
   };
 }
 
-function _handleReport_(iReport, iCallback){
+function _handleWatchReport_(iWatchReport, iCallback){
   if(!this._itDB){
     if(iCallback)
       iCallback('no db');
@@ -162,8 +167,8 @@ function _handleReport_(iReport, iCallback){
   var self = this;
 
   var Entries = [];
-  for(var iEntry in iReport){
-    Entries.push(iReport[iEntry]);
+  for(var iEntry in iWatchReport){
+    Entries.push(iWatchReport[iEntry]);
   }
 
   function handleNextEntry(iCallback){
@@ -182,7 +187,7 @@ function _handleReport_(iReport, iCallback){
           });
         }else{
           item.addTags(iEntry['tagWith']);
-          self._itDB.save(item, function(){
+          self._itDB.save(item, function(err, item){
             if(iCallback)
               iCallback();
           });
@@ -195,7 +200,7 @@ function _handleReport_(iReport, iCallback){
 }
 
 function _handleDummyPaths_(iDummyWatchPath, iCallback){
-  var report = {
+  var watchReport = {
     0:{
       'uri':'ftp://bidule:truc@serveur.fr:21/path/to/heaven.avi',
       'tagWith':['heaven','ftpFile'],
@@ -208,6 +213,6 @@ function _handleDummyPaths_(iDummyWatchPath, iCallback){
 
   };
 
-  iCallback(undefined, report);
+  iCallback(undefined, watchReport);
 
 }
