@@ -53,7 +53,9 @@ function doDiff(iCallback){
 
 function doWatch(iCallback){
   var self = this;
-  if(!this._configDB){return;}
+  if(!this._configDB){
+    iCallback('no configDB');
+  }
   this._configDB.fetchItemsSharingTags(['@watchPath'], function(err, items){
     if(!err){
       var watchingQueue = Async.queue(self._handleWatchPath_, 3);
@@ -62,10 +64,10 @@ function doWatch(iCallback){
       watchingQueue.saturated = function(){console.log('a task is pending... queueing !');};
 
       var watchPathReportsProcessed = 0;
-      function callbackIfComplete(err){
+      var callbackIfComplete = function (err){
         if((watchPathReportsProcessed == items.length) && iCallback)
-            iCallback(err);
-      }
+          iCallback(err);
+      };
 
       for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
         var currentWatchPath = items[watchPathIdx];
@@ -77,14 +79,14 @@ function doWatch(iCallback){
             self._handleWatchReport_(iWatchReport, function(err){
               watchPathReportsProcessed ++;
               callbackIfComplete(err);
-            });            
-          }else{          
+            });
+          }else{
             console.log(err);
             watchPathReportsProcessed ++;
             callbackIfComplete(err);
           }
 
-        });      
+        });
       }
     
     }
@@ -196,7 +198,7 @@ function _handleWatchReport_(iWatchReport, iCallback){
     })(entry));
   }
 
-  Async.until( function(){return (Entries.length <= 0)}, handleNextEntry, iCallback);
+  Async.until( function(){return (Entries.length <= 0);}, handleNextEntry, iCallback);
 }
 
 function _handleDummyPaths_(iDummyWatchPath, iCallback){
