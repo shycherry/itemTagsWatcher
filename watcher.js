@@ -62,50 +62,60 @@ function doWatch(iCallback){
   if(!this._configDB){
     iCallback('no configDB');
   }
-  this._configDB.fetchItemsSharingTags(['@watchPath'], function(err, items){
-    if(!err){
-      var watchingQueue = Async.queue(_handleWatchPath_, 3);
-      watchingQueue.empty = function(){console.log('queue is empty');};
-      watchingQueue.drain = function(){console.log('drain');};
-      watchingQueue.saturated = function(){console.log('a task is pending... queueing !');};
 
-      var watchPathReportsProcessed = 0;
-      var callbackIfComplete = function (err){
-        if((watchPathReportsProcessed == items.length) && iCallback)
-        {
-          switchDatabase(self._itDB, self._itDBSwitch, function(err){
-            iCallback(err);
-          });
-        }
-          
-      };
-
-      for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
-                
-        var watchTask = {
-          "watchPath": items[watchPathIdx],
-          "configDB": self._configDB
-        };
-
-        watchingQueue.push(watchTask, function(err, iWatchReport){
-          
-          if(!err){
-            console.log(iWatchReport);
-            _handleWatchReport_(iWatchReport, self.getDB(), function(err){
-              watchPathReportsProcessed ++;
-              callbackIfComplete(err);
-            });
-          }else{
-            console.log(err);
-            watchPathReportsProcessed ++;
-            callbackIfComplete(err);
-          }
-
-        });
-      }
+  switchDatabase(self._itDB, self._itDBSwitch, function(err){
     
+    if(err){
+
+      if(iCallback) iCallback(err);
+
+    }else{
+      self._configDB.fetchItemsSharingTags(['@watchPath'], function(err, items){
+        if(!err){
+          var watchingQueue = Async.queue(_handleWatchPath_, 3);
+          watchingQueue.empty = function(){console.log('queue is empty');};
+          watchingQueue.drain = function(){console.log('drain');};
+          watchingQueue.saturated = function(){console.log('a task is pending... queueing !');};
+
+          var watchPathReportsProcessed = 0;
+          var callbackIfComplete = function (err){
+            if((watchPathReportsProcessed == items.length) && iCallback)
+            {
+              iCallback(err);          
+            }
+              
+          };
+
+          for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
+                    
+            var watchTask = {
+              "watchPath": items[watchPathIdx],
+              "configDB": self._configDB
+            };
+
+            watchingQueue.push(watchTask, function(err, iWatchReport){
+              
+              if(!err){
+                console.log(iWatchReport);
+                _handleWatchReport_(iWatchReport, self.getDB(), function(err){
+                  watchPathReportsProcessed ++;
+                  callbackIfComplete(err);
+                });
+              }else{
+                console.log(err);
+                watchPathReportsProcessed ++;
+                callbackIfComplete(err);
+              }
+
+            });
+          }
+        
+        }
+      });
     }
+    
   });
+
 }
 
 function _handleWatchPath_(iWatchTask, iCallback){
@@ -128,6 +138,12 @@ function _handleWatchPath_(iWatchTask, iCallback){
   }else if(watchPath.xorHasTags(['@dummyWatchPath'])){
     
     _handleDummyPaths_(watchPath, function(err, report){
+      iCallback(err, report);
+    });
+
+  }else if(watchPath.xorHasTags(['@dummyWatchPath2'])){
+    
+    _handleDummyPaths2_(watchPath, function(err, report){
       iCallback(err, report);
     });
 
@@ -235,6 +251,19 @@ function _handleDummyPaths_(iDummyWatchPath, iCallback){
 
 }
 
+function _handleDummyPaths2_(iDummyWatchPath, iCallback){
+  var watchReport = {
+    0:{
+      'uri':'ftp://bidule:truc@serveur.fr:21/path/to/hell.avi',
+      'tagWith':['hell','ftpFile'],
+    },
+
+  };
+
+  iCallback(undefined, watchReport);
+
+}
+
 function switchDatabase(iDatabase, iSwitchDatabase, iCallback) {
   if(!iSwitchDatabase || !iDatabase){
     if(iCallback)
@@ -242,7 +271,13 @@ function switchDatabase(iDatabase, iSwitchDatabase, iCallback) {
   }
 
   iSwitchDatabase.cloneDb(iDatabase, function(err){
-    if(iCallback) iCallback(err);
+    if(err){
+      if(iCallback) iCallback(err);
+    }else{
+      iDatabase.deleteAll(function(err){
+        if(iCallback) iCallback(err);
+      });
+    }    
   });
 
 }

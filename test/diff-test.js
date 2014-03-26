@@ -6,6 +6,10 @@ var S_OK = 'SUCCEEDED';
 var E_FAIL = 'FAILED';
 var CONFIG_DB_PATH = './diff-test-watcherConfig.nosqltest';
 var TMP_CONFIG_DB_PATH = './tmp-diff-test-watcherConfig.nosql';
+
+var CONFIG_DB_PATH2 = './diff-test-watcherConfig2.nosqltest';
+var TMP_CONFIG_DB_PATH2 = './tmp-diff-test-watcherConfig2.nosql';
+
 var DB_PORT = 1337;
 
 var watcher = null;
@@ -22,10 +26,21 @@ function loadDb(iCallback){
   });
 }
 
+function loadDb2(iCallback){
+  watcher = require('../watcher')({
+    configDB:TMP_CONFIG_DB_PATH2
+  });
+
+  watcher.on('ready', function(){
+    iCallback(null, S_OK);
+  });
+}
+
 function rmDB(){
   fs.unlinkSync(TMP_DB_PATH);
   fs.unlinkSync(SWITCH_TMP_DB_PATH);
   fs.unlinkSync(TMP_CONFIG_DB_PATH);
+  fs.unlinkSync(TMP_CONFIG_DB_PATH2);
 }
 
 console.log('start diff test');
@@ -59,7 +74,37 @@ function testCheckDB(iCallback){
   });
 }
 
+function testCheckDBBis(iCallback){
+  console.log('testCheckDB');
+  watcher.getDB().fetchAll(function(err, items){
+    if(err){
+      iCallback(err, E_FAIL);
+    }else{
+      if(items.length != 1){
+        iCallback('bad expected count', E_FAIL);
+      }else{
+        iCallback(null, S_OK);
+      }
+    }
+  });
+}
+
 function testCheckSwitchDB(iCallback){
+  console.log('testCheckSwitchDB');
+  watcher.getSwitchDB().fetchAll(function(err, items){
+    if(err){
+      iCallback(err, E_FAIL);
+    }else{
+      if(items.length != 0){
+        iCallback('bad expected count', E_FAIL);
+      }else{
+        iCallback(null, S_OK);
+      }
+    }
+  });
+}
+
+function testCheckSwitchDBBis(iCallback){
   console.log('testCheckSwitchDB');
   watcher.getSwitchDB().fetchAll(function(err, items){
     if(err){
@@ -77,15 +122,20 @@ function testCheckSwitchDB(iCallback){
 async.series(
   {
     copyDb : function(callback){return copyFile(CONFIG_DB_PATH, TMP_CONFIG_DB_PATH, callback);},
-    loadDb : function(callback){return loadDb(callback);},
+    copyDb2 : function(callback){return copyFile(CONFIG_DB_PATH2, TMP_CONFIG_DB_PATH2, callback);},
+    loadDb : function(callback){return loadDb(callback);},    
     watch: function(callback){return testWatch(callback);},
     check: function(callback){return testCheckDB(callback);},
-    checkSwitch: function(callback){return testCheckSwitchDB(callback);}
+    checkSwitch: function(callback){return testCheckSwitchDB(callback);},
+    loadDb2 : function(callback){return loadDb2(callback);},
+    watchBis: function(callback){return testWatch(callback);},
+    checkBis: function(callback){return testCheckDBBis(callback);},
+    checkSwitchBis: function(callback){return testCheckSwitchDBBis(callback);}    
   },
 
   function finishCallback(err, results){
     console.log('erreurs: '+JSON.stringify(err));
-    console.log('test results:'+JSON.stringify(results));
+    console.log('test results:'+JSON.stringify(results, 2, 2));
     rmDB();
   }
 );
