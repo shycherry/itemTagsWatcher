@@ -40,11 +40,28 @@ function testWatch(iCallback){
   
 }
 
+function testCheck(iCallback){
+  console.log('testCheck ');
+  watcher.getDB().fetchAll(function(err, items){
+    if(err){
+      iCallback(err, E_FAIL);
+    }else{
+      if(items.length != 2){
+        iCallback('bad expected count', E_FAIL);
+      }else{
+        iCallback(null, S_OK);
+      }
+    }
+  });
+
+}
+
 async.series(
   {
     copyDb : function(callback){return copyFile(CONFIG_DB_PATH, TMP_CONFIG_DB_PATH, callback);},
     loadDb : function(callback){return loadDb(callback);},
-    watch: function(callback){return testWatch(callback);}
+    watch: function(callback){return testWatch(callback);},
+    check: function(callback){return testCheck(callback);}
   },
 
   function finishCallback(err, results){
