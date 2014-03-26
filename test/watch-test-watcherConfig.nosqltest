@@ -1,2 +1,2 @@
-{"uuid":"2b5668b0-20a6-11e3-a219-83959b5cd4c9","database":"tmp-watch-test-db","tags":["@watcherConfig"]}
+{"uuid":"2b5668b0-20a6-11e3-a219-83959b5cd4c9","database":"tmp-watch-test-db", "switchDatabase":"last-tmp-watch-test-db","tags":["@watcherConfig"]}
 {"uuid":"a20eeee0-2935-11e3-a08b-0b7e20667f65", "tags":["@dummyWatchPath", "@watchPath"]}

@@ -9,6 +9,7 @@ var Watcher = module.exports = function (options) {
     return new Watcher(options);
 
   var _itDB;
+  var _itDBSwitch;
   var _configDB;
   
   if ('undefined' != typeof options) this.configure(options);
@@ -23,6 +24,7 @@ Watcher.prototype.configure = configure;
 Watcher.prototype.doWatch = doWatch;
 Watcher.prototype.doDiff = doDiff;
 Watcher.prototype.getDB = function(){return this._itDB;};
+Watcher.prototype.getSwitchDB = function(){return this._itDBSwitch;};
 
 /**
 * methods
@@ -36,6 +38,7 @@ function configure(options){
         var watcherConfig = items[0];
         if(watcherConfig && watcherConfig.database){
           self._itDB = require('itemTagsDB')({database: watcherConfig.database});
+          self._itDBSwitch = require('itemTagsDB')({database: watcherConfig.switchDatabase});
           self.emit('ready');
         }
       }
@@ -43,8 +46,15 @@ function configure(options){
   }
 }
 
-function doDiff(iCallback){
-  
+function doDiff(iCallback){  
+  var diffReport = {};
+  var newItems = [];
+  var removedItems = [];
+
+  this._itDBSwitch.fetchAll(function(err, items){
+
+  });
+
 }
 
 function doWatch(iCallback){
@@ -62,7 +72,12 @@ function doWatch(iCallback){
       var watchPathReportsProcessed = 0;
       var callbackIfComplete = function (err){
         if((watchPathReportsProcessed == items.length) && iCallback)
-          iCallback(err);
+        {
+          switchDatabase(self._itDB, self._itDBSwitch, function(err){
+            iCallback(err);
+          });
+        }
+          
       };
 
       for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
@@ -220,31 +235,14 @@ function _handleDummyPaths_(iDummyWatchPath, iCallback){
 
 }
 
-function copyFile(source, target, cb) {
-  //create a copy of db
-  if(fs.existsSync(target)){
-    fs.unlinkSync(target);
+function switchDatabase(iDatabase, iSwitchDatabase, iCallback) {
+  if(!iSwitchDatabase || !iDatabase){
+    if(iCallback)
+      iCallback('bad inputs');
   }
 
-  var cbCalled = false;
+  iSwitchDatabase.cloneDb(iDatabase, function(err){
+    if(iCallback) iCallback(err);
+  });
 
-  var rd = fs.createReadStream(source);
-  rd.on("error", function(err) {
-    done(err);
-  });
-  var wr = fs.createWriteStream(target);
-  wr.on("error", function(err) {
-    done(err);
-  });
-  wr.on("close", function(ex) {
-    done();
-  });
-  rd.pipe(wr);
-
-  function done(err) {
-    if (!cbCalled) {
-      cb(err);
-      cbCalled = true;
-    }
-  }
 }

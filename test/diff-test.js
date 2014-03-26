@@ -4,47 +4,83 @@ var https = require('https');
 
 var S_OK = 'SUCCEEDED';
 var E_FAIL = 'FAILED';
-var CONFIG_DB_PATH = './watch-test-watcherConfig.nosqltest';
-var TMP_CONFIG_DB_PATH = './tmp-watch-test-watcherConfig.nosql';
+var CONFIG_DB_PATH = './diff-test-watcherConfig.nosqltest';
+var TMP_CONFIG_DB_PATH = './tmp-diff-test-watcherConfig.nosql';
 var DB_PORT = 1337;
 
 var watcher = null;
-var TMP_DB_PATH =  './tmp-watch-test-db.nosql';
+var TMP_DB_PATH =  './tmp-diff-test-db.nosql';
+var SWITCH_TMP_DB_PATH =  './last-tmp-diff-test-db.nosql';
 
 function loadDb(iCallback){
   watcher = require('../watcher')({
     configDB:TMP_CONFIG_DB_PATH
   });
-  
-  iCallback(null, S_OK);
+
+  watcher.on('ready', function(){
+    iCallback(null, S_OK);
+  });
 }
 
 function rmDB(){
   fs.unlinkSync(TMP_DB_PATH);
+  fs.unlinkSync(SWITCH_TMP_DB_PATH);
   fs.unlinkSync(TMP_CONFIG_DB_PATH);
 }
 
-console.log('start watcher test');
+console.log('start diff test');
 
 function testWatch(iCallback){
   console.log('testWatch ');
-  watcher.doWatch(function(err, items){
+  
+  watcher.doWatch(function(err){
     if(err){
       console.log('KO ',err);
       iCallback(err, E_FAIL);
     }else{
       iCallback(null, S_OK);
-    }
-        
+    }      
   });
   
+}
+
+function testCheckDB(iCallback){
+  console.log('testCheckDB');
+  watcher.getDB().fetchAll(function(err, items){
+    if(err){
+      iCallback(err, E_FAIL);
+    }else{
+      if(items.length != 2){
+        iCallback('bad expected count', E_FAIL);
+      }else{
+        iCallback(null, S_OK);
+      }
+    }
+  });
+}
+
+function testCheckSwitchDB(iCallback){
+  console.log('testCheckSwitchDB');
+  watcher.getSwitchDB().fetchAll(function(err, items){
+    if(err){
+      iCallback(err, E_FAIL);
+    }else{
+      if(items.length != 2){
+        iCallback('bad expected count', E_FAIL);
+      }else{
+        iCallback(null, S_OK);
+      }
+    }
+  });
 }
 
 async.series(
   {
     copyDb : function(callback){return copyFile(CONFIG_DB_PATH, TMP_CONFIG_DB_PATH, callback);},
     loadDb : function(callback){return loadDb(callback);},
-    watch: function(callback){return testWatch(callback);}
+    watch: function(callback){return testWatch(callback);},
+    check: function(callback){return testCheckDB(callback);},
+    checkSwitch: function(callback){return testCheckSwitchDB(callback);}
   },
 
   function finishCallback(err, results){

@@ -10,17 +10,21 @@ var DB_PORT = 1337;
 
 var watcher = null;
 var TMP_DB_PATH =  './tmp-watch-test-db.nosql';
+var SWITCH_TMP_DB_PATH =  './last-tmp-watch-test-db.nosql';
 
 function loadDb(iCallback){
   watcher = require('../watcher')({
     configDB:TMP_CONFIG_DB_PATH
   });
   
-  iCallback(null, S_OK);
+  watcher.on('ready', function(){
+    iCallback(null, S_OK);
+  });
 }
 
 function rmDB(){
   fs.unlinkSync(TMP_DB_PATH);
+  fs.unlinkSync(SWITCH_TMP_DB_PATH);
   fs.unlinkSync(TMP_CONFIG_DB_PATH);
 }
 
@@ -28,14 +32,14 @@ console.log('start watcher test');
 
 function testWatch(iCallback){
   console.log('testWatch ');
-  watcher.doWatch(function(err, items){
+  
+  watcher.doWatch(function(err){
     if(err){
       console.log('KO ',err);
       iCallback(err, E_FAIL);
     }else{
       iCallback(null, S_OK);
     }
-        
   });
   
 }
