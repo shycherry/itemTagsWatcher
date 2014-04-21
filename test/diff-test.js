@@ -17,6 +17,7 @@ var TMP_DB_PATH =  './tmp-diff-test-db.nosql';
 var SWITCH_TMP_DB_PATH =  './last-tmp-diff-test-db.nosql';
 
 function loadDb(iCallback){
+  console.log('loadDb test');
   watcher = require('../watcher')({
     configDB:TMP_CONFIG_DB_PATH
   });
@@ -27,6 +28,7 @@ function loadDb(iCallback){
 }
 
 function loadDb2(iCallback){
+  console.log('loadDb2 test');
   watcher = require('../watcher')({
     configDB:TMP_CONFIG_DB_PATH2
   });
@@ -54,7 +56,7 @@ function testWatch(iCallback){
       iCallback(err, E_FAIL);
     }else{
       iCallback(null, S_OK);
-    }      
+    }
   });
   
 }
@@ -75,12 +77,12 @@ function testCheckDB(iCallback){
 }
 
 function testCheckDBBis(iCallback){
-  console.log('testCheckDB');
+  console.log('testCheckDBBis');
   watcher.getDB().fetchAll(function(err, items){
     if(err){
       iCallback(err, E_FAIL);
     }else{
-      if(items.length != 1){
+      if(items.length != 2){
         iCallback('bad expected count', E_FAIL);
       }else{
         iCallback(null, S_OK);
@@ -95,7 +97,7 @@ function testCheckSwitchDB(iCallback){
     if(err){
       iCallback(err, E_FAIL);
     }else{
-      if(items.length != 0){
+      if(items.length !== 0){
         iCallback('bad expected count', E_FAIL);
       }else{
         iCallback(null, S_OK);
@@ -105,7 +107,7 @@ function testCheckSwitchDB(iCallback){
 }
 
 function testCheckSwitchDBBis(iCallback){
-  console.log('testCheckSwitchDB');
+  console.log('testCheckSwitchDBBis');
   watcher.getSwitchDB().fetchAll(function(err, items){
     if(err){
       iCallback(err, E_FAIL);
@@ -119,18 +121,32 @@ function testCheckSwitchDBBis(iCallback){
   });
 }
 
+function testDiff(iCallback){
+  console.log('testDiff');
+  watcher.doDiff(function(err, iDiffReport){
+    console.log('diff report:');
+    console.log(JSON.stringify(iDiffReport,2,2));
+    if(err){
+      iCallback(err, E_FAIL);
+    }else{
+      iCallback(null, S_OK);
+    }
+  });
+}
+
 async.series(
   {
     copyDb : function(callback){return copyFile(CONFIG_DB_PATH, TMP_CONFIG_DB_PATH, callback);},
     copyDb2 : function(callback){return copyFile(CONFIG_DB_PATH2, TMP_CONFIG_DB_PATH2, callback);},
-    loadDb : function(callback){return loadDb(callback);},    
+    loadDb : function(callback){return loadDb(callback);},
     watch: function(callback){return testWatch(callback);},
     check: function(callback){return testCheckDB(callback);},
     checkSwitch: function(callback){return testCheckSwitchDB(callback);},
     loadDb2 : function(callback){return loadDb2(callback);},
     watchBis: function(callback){return testWatch(callback);},
     checkBis: function(callback){return testCheckDBBis(callback);},
-    checkSwitchBis: function(callback){return testCheckSwitchDBBis(callback);}    
+    checkSwitchBis: function(callback){return testCheckSwitchDBBis(callback);},
+    diff: function(callback){return testDiff(callback);}
   },
 
   function finishCallback(err, results){

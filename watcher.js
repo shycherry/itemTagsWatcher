@@ -46,15 +46,38 @@ function configure(options){
   }
 }
 
-function doDiff(iCallback){  
+function doDiff(iCallback){
   var diffReport = {};
-  var newItems = [];
-  var removedItems = [];
+  var newItems = diffReport['added'] = [];
+  var removedItems = diffReport['removed'] = [];
+  var changedItems = diffReport['changed'] = [];
 
-  this._itDBSwitch.fetchAll(function(err, items){
+  if(!this._itDB){
+    iCallback('no store db');
+    return;
+  }
 
-  });
+  if(!this._itDBSwitch){
+    iCallback('no switchDatabase db');
+    return;
+  }
 
+  var self = this;
+  Async.series(
+    {
+      "dbItems" : self._itDB.fetchAll,
+      "dbSwitchItems" : self._itDBSwitch.fetchAll
+    },
+    compareDBs
+  );
+
+  function compareDBs(err, results){
+    var dbItems = results["dbItems"];
+    var switchItems = results["dbSwitchItems"];
+    console.log('dbItems :'+JSON.stringify(dbItems, 2, 2));
+    console.log('switchItems :'+JSON.stringify(switchItems, 2, 2));
+    iCallback(err, diffReport);
+  }
 }
 
 function doWatch(iCallback){
@@ -81,7 +104,7 @@ function doWatch(iCallback){
           var callbackIfComplete = function (err){
             if((watchPathReportsProcessed == items.length) && iCallback)
             {
-              iCallback(err);          
+              iCallback(err);
             }
               
           };
@@ -271,13 +294,14 @@ function switchDatabase(iDatabase, iSwitchDatabase, iCallback) {
   }
 
   iSwitchDatabase.cloneDb(iDatabase, function(err){
-    if(err){
-      if(iCallback) iCallback(err);
-    }else{
-      iDatabase.deleteAll(function(err){
-        if(iCallback) iCallback(err);
-      });
-    }    
+    if(iCallback) iCallback(err);
+    // if(err){
+    //   if(iCallback) iCallback(err);
+    // }else{
+    //   iDatabase.deleteAll(function(err){
+    //     if(iCallback) iCallback(err);
+    //   });
+    // }
   });
 
 }
