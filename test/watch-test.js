@@ -24,7 +24,6 @@ function loadDb(iCallback){
 
 function rmDB(){
   fs.unlinkSync(TMP_DB_PATH);
-  // fs.unlinkSync(SWITCH_TMP_DB_PATH);
   fs.unlinkSync(TMP_CONFIG_DB_PATH);
 }
 

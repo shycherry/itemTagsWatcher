@@ -33,14 +33,18 @@ function configure(options){
   var self = this;
   if('undefined' != typeof options.configDB){
     this._configDB = require('itemTagsDB')({database: options.configDB});
-    this._configDB.fetchItemsSharingTags(['@watcherConfig'], function(err, items){
-      if(!err){
-        var watcherConfig = items[0];
+    this._configDB.fetchItemsSharingTags(['watcherConfig'], function(err, items){
+      if(!err && items && items.length == 1){
+        var watcherConfig = items[0].getTagValue('watcherConfig');
         if(watcherConfig && watcherConfig.database){
           self._itDB = require('itemTagsDB')({database: watcherConfig.database});
           self._itDBSwitch = require('itemTagsDB')({database: watcherConfig.switchDatabase});
           self.emit('ready');
+        }else{
+          self.emit('error');
         }
+      }else{
+        self.emit('error');
       }
     });
   }
@@ -93,9 +97,9 @@ function doWatch(iCallback){
       if(iCallback) iCallback(err);
 
     }else{
-      self._configDB.fetchItemsSharingTags(['@watchPath'], function(err, items){
+      self._configDB.fetchItemsSharingTags(['watchPath'], function(err, items){
         if(!err){
-          var watchingQueue = Async.queue(_handleWatchPath_, 3);
+          var watchingQueue = Async.queue(_handleWatchPath_, 1);
           watchingQueue.empty = function(){console.log('queue is empty');};
           watchingQueue.drain = function(){console.log('drain');};
           watchingQueue.saturated = function(){console.log('a task is pending... queueing !');};
@@ -146,25 +150,30 @@ function _handleWatchPath_(iWatchTask, iCallback){
   var watchPath = iWatchTask['watchPath'];
   var configDB = iWatchTask['configDB'];
 
-  if(watchPath.xorHasTags(['@ftpWatchPath'])){
+  if(watchPath.xorHasTags(['ftpWatchPath'])){
     
-    configDB.fetchOne(watchPath.ftpConfig, (function(iWatchPath){
+    configDB.fetchOne(watchPath.getTagValue('ftpWatchPath').ftpConfig, (function(iWatchPath){
       return function(err, itemFtpConfig){
         if(!err){
-          _handleFtpPaths_(itemFtpConfig.config, iWatchPath.path, iWatchPath.tagWith, function(err, report){
-            iCallback(err, report);
-          });
+          _handleFtpPaths_(
+            itemFtpConfig.getTagValue('ftpConfig'), 
+            iWatchPath.getTagValue('ftpWatchPath').path,
+            iWatchPath.getTagValue('watchPath').tagWith, 
+            function(err, report){
+              iCallback(err, report);
+            }
+          );
         }
       };
     })(watchPath));
   
-  }else if(watchPath.xorHasTags(['@dummyWatchPath'])){
+  }else if(watchPath.xorHasTags(['dummyWatchPath'])){
     
     _handleDummyPaths_(watchPath, function(err, report){
       iCallback(err, report);
     });
 
-  }else if(watchPath.xorHasTags(['@dummyWatchPath2'])){
+  }else if(watchPath.xorHasTags(['dummyWatchPath2'])){
     
     _handleDummyPaths2_(watchPath, function(err, report){
       iCallback(err, report);
@@ -208,9 +217,13 @@ function _handleFtpPaths_(iFtpConfig, iPath, iTagWith, iCallback){
   ftp.connect(iFtpConfig);
 }
 
-function _uriFilter_(iUri){
+function _fileUriFilter_(iUri){
   return function(item){
-    return item.uri == iUri;
+    if( item.orHasTags(['file']) ){
+      return (item.getTagValue('file').uri == iUri);
+    }else{
+      return false;
+    }    
   };
 }
 
@@ -228,27 +241,26 @@ function _handleWatchReport_(iWatchReport, iStoreDB, iCallback){
     Entries.push(iWatchReport[iEntry]);
   }
 
+  //Here is items creation !
   function handleNextEntry(iCallback){
     var entry = Entries.shift();
-    iStoreDB.fetchOneByFilter(_uriFilter_(entry.uri), (function(iEntry){
+    iStoreDB.fetchOneByFilter(_fileUriFilter_(entry.uri), (function(iEntry){
       return function(err, item){
-        if(err){
-          var newItem = {
-            'uri':iEntry['uri'],
-            'tags':iEntry['tagWith'],
-            'name':decodeURI(Path.basename(iEntry['uri']))
-          };
-          iStoreDB.save(newItem, function(){
-            if(iCallback)
-              iCallback();
-          });
-        }else{
-          item.addTags(iEntry['tagWith']);
-          iStoreDB.save(item, function(err, item){
-            if(iCallback)
-              iCallback();
+        if(err){          
+          item = iStoreDB.getNewItem(
+          {
+            "@file" : {
+              "uri" : iEntry['uri']
+            },
           });
         }
+        
+        item.addTags(iEntry['tagWith']);
+        iStoreDB.save(item, function(err, item){
+          if(iCallback)
+            iCallback();
+        });
+        
       };
     })(entry));
   }
