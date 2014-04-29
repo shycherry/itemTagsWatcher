@@ -218,13 +218,9 @@ function _handleFtpPaths_(iFtpConfig, iPath, iTagWith, iCallback){
 }
 
 function _fileUriFilter_(iUri){
-  return function(item){
-    if( item.orHasTags(['file']) ){
-      return (item.getTagValue('file').uri == iUri);
-    }else{
-      return false;
-    }    
-  };
+  return JSON.stringify({
+    "@file" : {"uri" : iUri}
+  });
 }
 
 function _handleWatchReport_(iWatchReport, iStoreDB, iCallback){
@@ -307,13 +303,6 @@ function switchDatabase(iDatabase, iSwitchDatabase, iCallback) {
 
   iSwitchDatabase.cloneDb(iDatabase, function(err){
     if(iCallback) iCallback(err);
-    // if(err){
-    //   if(iCallback) iCallback(err);
-    // }else{
-    //   iDatabase.deleteAll(function(err){
-    //     if(iCallback) iCallback(err);
-    //   });
-    // }
   });
 
 }
