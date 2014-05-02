@@ -4,17 +4,17 @@ var https = require('https');
 
 var S_OK = 'SUCCEEDED';
 var E_FAIL = 'FAILED';
-var CONFIG_DB_PATH = './diff-test-watcherConfig.nosqltest';
-var TMP_CONFIG_DB_PATH = './tmp-diff-test-watcherConfig.nosql';
+var CONFIG_DB_PATH = './switch-test-watcherConfig.nosqltest';
+var TMP_CONFIG_DB_PATH = './tmp-switch-test-watcherConfig.nosql';
 
-var CONFIG_DB_PATH2 = './diff-test-watcherConfig2.nosqltest';
-var TMP_CONFIG_DB_PATH2 = './tmp-diff-test-watcherConfig2.nosql';
+var CONFIG_DB_PATH2 = './switch-test-watcherConfig2.nosqltest';
+var TMP_CONFIG_DB_PATH2 = './tmp-switch-test-watcherConfig2.nosql';
 
 var DB_PORT = 1337;
 
 var watcher = null;
-var TMP_DB_PATH =  './tmp-diff-test-db.nosql';
-var SWITCH_TMP_DB_PATH =  './last-tmp-diff-test-db.nosql';
+var TMP_DB_PATH =  './tmp-switch-test-db.nosql';
+var SWITCH_TMP_DB_PATH =  './last-tmp-switch-test-db.nosql';
 
 function loadDb(iCallback){
   console.log('loadDb test');
