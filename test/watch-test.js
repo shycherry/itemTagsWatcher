@@ -50,7 +50,7 @@ function testCheck(iCallback){
       iCallback(err, E_FAIL);
     }else{
       if(items.length != 2){
-        iCallback('bad expected count', E_FAIL);
+        iCallback('bad expected count : got '+items.length+' expected 2', E_FAIL);
       }else{
         iCallback(null, S_OK);
       }

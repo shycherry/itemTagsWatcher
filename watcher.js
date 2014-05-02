@@ -268,12 +268,12 @@ function _handleDummyPaths_(iDummyWatchPath, iCallback){
   var watchReport = {
     0:{
       'uri':'ftp://bidule:truc@serveur.fr:21/path/to/heaven.avi',
-      'tagWith':['heaven','ftpFile'],
+      'tagWith':['dummyresult1','heaven','ftpFile'],
     },
     
     1:{
       'uri':'ftp://bidule:truc@serveur.fr:21/path/to/hell.avi',
-      'tagWith':['hell','ftpFile'],
+      'tagWith':['dummyresult1','hell','ftpFile'],
     },
 
   };
@@ -286,7 +286,7 @@ function _handleDummyPaths2_(iDummyWatchPath, iCallback){
   var watchReport = {
     0:{
       'uri':'ftp://bidule:truc@serveur.fr:21/path/to/hell.avi',
-      'tagWith':['hell','ftpFile'],
+      'tagWith':['dummyresult2','hell','ftpFile'],
     },
 
   };
