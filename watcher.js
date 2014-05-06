@@ -11,6 +11,8 @@ var Watcher = module.exports = function (options) {
   var _itDB;
   var _itDBSwitch;
   var _configDB;
+  var _requestQueue;
+  var _ready;
   
   if ('undefined' != typeof options) this.configure(options);
 };
@@ -21,8 +23,8 @@ inherits(Watcher, EventEmitter);
 * exposed API
 */
 Watcher.prototype.configure = configure;
-Watcher.prototype.doWatch = doWatch;
-Watcher.prototype.doDiff = doDiff;
+Watcher.prototype.doWatch = function(iCallback){return this._requestQueue.push(doWatch.bind(this), iCallback)};
+Watcher.prototype.doDiff = function(iCallback){return this._requestQueue.push(doDiff.bind(this), iCallback)};
 Watcher.prototype.getDB = function(){return this._itDB;};
 Watcher.prototype.getSwitchDB = function(){return this._itDBSwitch;};
 
@@ -31,6 +33,22 @@ Watcher.prototype.getSwitchDB = function(){return this._itDBSwitch;};
 */
 function configure(options){
   var self = this;
+  
+  this._requestQueue = Async.queue(function(iRequestTask, iCallback){
+    if(self._ready){
+      iRequestTask(iCallback);  
+    }else{
+      self.once('ready', function(){
+        iRequestTask(iCallback)
+      });
+    }    
+  }, 1);
+
+  this._ready = false;
+  this.once('ready', function(){
+    self._ready = true;
+  });
+
   if('undefined' != typeof options.configDB){
     this._configDB = require('itemTagsDB')({database: options.configDB});
     this._configDB.fetchItemsSharingTags(['watcherConfig'], function(err, items){
