@@ -51,37 +51,29 @@ function configure(options){
 }
 
 function doDiff(iCallback){
-  var diffReport = {};
-  var newItems = diffReport['added'] = [];
-  var removedItems = diffReport['removed'] = [];
-  var changedItems = diffReport['changed'] = [];
-
   if(!this._itDB){
-    iCallback('no store db');
-    return;
+    if(iCallback) iCallback('no db');
   }
-
   if(!this._itDBSwitch){
-    iCallback('no switchDatabase db');
-    return;
+    if(iCallback) iCallback('no switch db');
   }
 
-  var self = this;
-  Async.series(
-    {
-      "dbItems" : self._itDB.fetchAll,
-      "dbSwitchItems" : self._itDBSwitch.fetchAll
-    },
-    compareDBs
-  );
+  var fileUriMatchFilter = JSON.stringify({"@file":{"uri":"/"}});
+  this._itDB.diffDb(this._itDBSwitch,fileUriMatchFilter, function(err, report){
+    if(err){
+      if(iCallback) iCallback(err);
+      return;
+    }
 
-  function compareDBs(err, results){
-    var dbItems = results["dbItems"];
-    var switchItems = results["dbSwitchItems"];
-    console.log('dbItems :'+JSON.stringify(dbItems, 2, 2));
-    console.log('switchItems :'+JSON.stringify(switchItems, 2, 2));
-    iCallback(err, diffReport);
-  }
+    var diffReport = {};
+
+    if(report){
+      diffReport['addedItems'] = report['onlyDB1'];
+      diffReport['removedItems'] = report['onlyDB2'];
+    }
+    
+    if(iCallback) iCallback(null, diffReport);
+  });
 }
 
 function doWatch(iCallback){
