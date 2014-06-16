@@ -25,8 +25,9 @@ inherits(Watcher, EventEmitter);
 Watcher.prototype.configure = configure;
 Watcher.prototype.doWatch = function(iCallback){return this._requestQueue.push(doWatch.bind(this), iCallback)};
 Watcher.prototype.doDiff = function(iCallback){return this._requestQueue.push(doDiff.bind(this), iCallback)};
-Watcher.prototype.getDB = function(){return this._itDB;};
-Watcher.prototype.getSwitchDB = function(){return this._itDBSwitch;};
+Watcher.prototype.doSwitch = function(iCallback){return this._requestQueue.push(doSwitch.bind(this), iCallback)};
+Watcher.prototype.getDB = function(iCallback){return this._requestQueue.push(getDB.bind(this), iCallback)};
+Watcher.prototype.getSwitchDB = function(iCallback){return this._requestQueue.push(getSwitchDB.bind(this), iCallback)};
 
 /**
 * methods
@@ -68,6 +69,14 @@ function configure(options){
   }
 }
 
+function getDB(iCallback){
+  if(iCallback) iCallback(null, this._itDB);
+}
+
+function getSwitchDB(iCallback){
+  if(iCallback) iCallback(null, this._itDBSwitch);
+}
+
 function doDiff(iCallback){
   if(!this._itDB){
     if(iCallback) iCallback('no db');
@@ -100,59 +109,48 @@ function doWatch(iCallback){
     iCallback('no configDB');
   }
 
-  switchDatabase(self._itDB, self._itDBSwitch, function(err){
-    
-    if(err){
+  self._configDB.fetchItemsSharingTags(['watchPath'], function(err, items){
+    if(!err){
+      var watchingQueue = Async.queue(_handleWatchPath_.bind(self), 1);
+      watchingQueue.empty = function(){console.log('watchingQueue is empty');};
+      watchingQueue.drain = function(){console.log('watchingQueue is drained');};
+      watchingQueue.saturated = function(){console.log('watchingQueue is saturated');};
 
-      if(iCallback) iCallback(err);
+      var watchPathReportsProcessed = 0;
 
-    }else{
-      self._configDB.fetchItemsSharingTags(['watchPath'], function(err, items){
-        if(!err){
-          var watchingQueue = Async.queue(_handleWatchPath_, 1);
-          watchingQueue.empty = function(){console.log('queue is empty');};
-          watchingQueue.drain = function(){console.log('drain');};
-          watchingQueue.saturated = function(){console.log('a task is pending... queueing !');};
-
-          var watchPathReportsProcessed = 0;
-          var callbackIfComplete = function (err){
-            if((watchPathReportsProcessed == items.length) && iCallback)
-            {
-              iCallback(err);
-            }
-              
-          };
-
-          for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
-                    
-            var watchTask = {
-              "watchPath": items[watchPathIdx],
-              "configDB": self._configDB
-            };
-
-            watchingQueue.push(watchTask, function(err, iWatchReport){
-              
-              if(!err){
-                console.log(iWatchReport);
-                _handleWatchReport_(iWatchReport, self.getDB(), function(err){
-                  watchPathReportsProcessed ++;
-                  callbackIfComplete(err);
-                });
-              }else{
-                console.log(err);
-                watchPathReportsProcessed ++;
-                callbackIfComplete(err);
-              }
-
-            });
-          }
-        
+      var testIfLastCallback = function (err){
+        if((watchPathReportsProcessed == items.length))
+        {
+          if(iCallback) iCallback(err);
         }
-      });
-    }
-    
-  });
+      };
 
+      for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
+                
+        var watchTask = {
+          "watchPath": items[watchPathIdx],
+          "configDB": self._configDB
+        };
+
+        watchingQueue.push(watchTask, function(err, iWatchReport){
+          
+          if(!err){
+            console.log(iWatchReport);
+            _handleWatchReport_(iWatchReport, self._itDB, function(err){
+              watchPathReportsProcessed ++;
+              testIfLastCallback(err);
+            });
+          }else{
+            console.log(err);
+            watchPathReportsProcessed ++;
+            testIfLastCallback(err);
+          }
+
+        });
+      }
+    
+    }
+  });
 }
 
 function _handleWatchPath_(iWatchTask, iCallback){
@@ -305,13 +303,17 @@ function _handleDummyPaths2_(iDummyWatchPath, iCallback){
 
 }
 
-function switchDatabase(iDatabase, iSwitchDatabase, iCallback) {
-  if(!iSwitchDatabase || !iDatabase){
+function doSwitch(iCallback) {  
+  var switchDatabase = this._itDBSwitch;
+  var currentDatabase = this._itDB;
+
+  if(!switchDatabase || !currentDatabase){
     if(iCallback)
-      iCallback('bad inputs');
+      iCallback('doSwitch error : database missing');
   }
 
-  iSwitchDatabase.cloneDb(iDatabase, function(err){
+  console.log('cloning database to switch_database...');
+  switchDatabase.cloneDb(currentDatabase, function(err){
     if(iCallback) iCallback(err);
   });
 
