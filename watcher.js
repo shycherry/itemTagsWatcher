@@ -109,48 +109,56 @@ function doWatch(iCallback){
     iCallback('no configDB');
   }
 
-  self._configDB.fetchItemsSharingTags(['watchPath'], function(err, items){
-    if(!err){
-      var watchingQueue = Async.queue(_handleWatchPath_.bind(self), 1);
-      watchingQueue.empty = function(){console.log('watchingQueue is empty');};
-      watchingQueue.drain = function(){console.log('watchingQueue is drained');};
-      watchingQueue.saturated = function(){console.log('watchingQueue is saturated');};
+  self._itDB.deleteAll(function(err){
+    if(err){
+      if(iCallback) iCallback(err);
+    }else{
+      self._configDB.fetchItemsSharingTags(['watchPath'], function(err, items){
+        if(!err){
+          var watchingQueue = Async.queue(_handleWatchPath_.bind(self), 1);
+          watchingQueue.empty = function(){console.log('watchingQueue is empty');};
+          watchingQueue.drain = function(){console.log('watchingQueue is drained');};
+          watchingQueue.saturated = function(){console.log('watchingQueue is saturated');};
 
-      var watchPathReportsProcessed = 0;
+          var watchPathReportsProcessed = 0;
 
-      var testIfLastCallback = function (err){
-        if((watchPathReportsProcessed == items.length))
-        {
-          if(iCallback) iCallback(err);
-        }
-      };
+          var testIfLastCallback = function (err){
+            if((watchPathReportsProcessed == items.length))
+            {
+              if(iCallback) iCallback(err);
+            }
+          };
 
-      for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
-                
-        var watchTask = {
-          "watchPath": items[watchPathIdx],
-          "configDB": self._configDB
-        };
+          for(var watchPathIdx = 0; watchPathIdx<items.length; watchPathIdx++){
+                    
+            var watchTask = {
+              "watchPath": items[watchPathIdx],
+              "configDB": self._configDB
+            };
 
-        watchingQueue.push(watchTask, function(err, iWatchReport){
-          
-          if(!err){
-            console.log(iWatchReport);
-            _handleWatchReport_(iWatchReport, self._itDB, function(err){
-              watchPathReportsProcessed ++;
-              testIfLastCallback(err);
+            watchingQueue.push(watchTask, function(err, iWatchReport){
+              
+              if(!err){
+                console.log(iWatchReport);
+                _handleWatchReport_(iWatchReport, self._itDB, function(err){
+                  watchPathReportsProcessed ++;
+                  testIfLastCallback(err);
+                });
+              }else{
+                console.log(err);
+                watchPathReportsProcessed ++;
+                testIfLastCallback(err);
+              }
+
             });
-          }else{
-            console.log(err);
-            watchPathReportsProcessed ++;
-            testIfLastCallback(err);
           }
-
-        });
-      }
-    
+        
+        }
+      });
     }
-  });
+  })
+
+  
 }
 
 function _handleWatchPath_(iWatchTask, iCallback){
