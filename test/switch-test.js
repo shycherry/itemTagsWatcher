@@ -1,6 +1,5 @@
 var fs = require('fs');
 var async = require('async');
-var https = require('https');
 
 var S_OK = 'SUCCEEDED';
 var E_FAIL = 'FAILED';
@@ -61,63 +60,85 @@ function testWatch(iCallback){
   
 }
 
-function testCheckDB(iCallback){
-  console.log('testCheckDB');
-  watcher.getDB().fetchAll(function(err, items){
+function testSwitch(iCallback){
+  console.log('testSwitch ');
+  
+  watcher.doSwitch(function(err){
     if(err){
+      console.log('KO ',err);
       iCallback(err, E_FAIL);
     }else{
-      if(items.length != 2){
-        iCallback('bad expected count', E_FAIL);
-      }else{
-        iCallback(null, S_OK);
-      }
+      iCallback(null, S_OK);
     }
+  });
+  
+}
+
+function testCheckDB(iCallback){
+  console.log('testCheckDB');
+  watcher.getDB(function(err, db){
+    db.fetchAll(function(err, items){
+      if(err){
+        iCallback(err, E_FAIL);
+      }else{
+        if(items.length != 2){
+          iCallback('bad expected count', E_FAIL);
+        }else{
+          iCallback(null, S_OK);
+        }
+      }
+    });
   });
 }
 
 function testCheckDBBis(iCallback){
   console.log('testCheckDBBis');
-  watcher.getDB().fetchAll(function(err, items){
-    if(err){
-      iCallback(err, E_FAIL);
-    }else{
-      if(items.length != 2){
-        iCallback('bad expected count', E_FAIL);
+  watcher.getDB(function(err, db){
+    db.fetchAll(function(err, items){
+      if(err){
+        iCallback(err, E_FAIL);
       }else{
-        iCallback(null, S_OK);
+        if(items.length != 1){
+          iCallback('bad expected count', E_FAIL);
+        }else{
+          iCallback(null, S_OK);
+        }
       }
-    }
+    });
   });
 }
 
 function testCheckSwitchDB(iCallback){
   console.log('testCheckSwitchDB');
-  watcher.getSwitchDB().fetchAll(function(err, items){
-    if(err){
-      iCallback(err, E_FAIL);
-    }else{
-      if(items.length !== 0){
-        iCallback('bad expected count', E_FAIL);
+  watcher.getSwitchDB(function(err, db){
+    db.fetchAll(function(err, items){
+      if(err){
+        iCallback(err, E_FAIL);
       }else{
-        iCallback(null, S_OK);
+        if(items.length !== 2){
+          iCallback('bad expected count', E_FAIL);
+        }else{
+          iCallback(null, S_OK);
+        }
       }
-    }
+    });
   });
 }
 
 function testCheckSwitchDBBis(iCallback){
   console.log('testCheckSwitchDBBis');
-  watcher.getSwitchDB().fetchAll(function(err, items){
-    if(err){
-      iCallback(err, E_FAIL);
-    }else{
-      if(items.length != 2){
-        iCallback('bad expected count', E_FAIL);
+  watcher.getSwitchDB(function(err, db){
+    db.fetchAll(function(err, items){
+      if(err){
+        iCallback(err, E_FAIL);
       }else{
-        iCallback(null, S_OK);
+        if(items.length != 1){
+          iCallback('bad expected count', E_FAIL);
+        }else{
+          iCallback(null, S_OK);
+        }
       }
-    }
+    });
   });
 }
 
@@ -140,10 +161,12 @@ async.series(
     copyDb2 : function(callback){return copyFile(CONFIG_DB_PATH2, TMP_CONFIG_DB_PATH2, callback);},
     loadDb : function(callback){return loadDb(callback);},
     watch: function(callback){return testWatch(callback);},
+    switch: function(callback){return testSwitch(callback);},
     check: function(callback){return testCheckDB(callback);},
     checkSwitch: function(callback){return testCheckSwitchDB(callback);},
     loadDb2 : function(callback){return loadDb2(callback);},
     watchBis: function(callback){return testWatch(callback);},
+    switchBis: function(callback){return testSwitch(callback);},
     checkBis: function(callback){return testCheckDBBis(callback);},
     checkSwitchBis: function(callback){return testCheckSwitchDBBis(callback);},
     diff: function(callback){return testDiff(callback);}

@@ -1,6 +1,5 @@
 var fs = require('fs');
 var async = require('async');
-var https = require('https');
 
 var S_OK = 'SUCCEEDED';
 var E_FAIL = 'FAILED';
@@ -45,16 +44,18 @@ function testWatch(iCallback){
 
 function testCheck(iCallback){
   console.log('testCheck ');
-  watcher.getDB().fetchAll(function(err, items){
-    if(err){
-      iCallback(err, E_FAIL);
-    }else{
-      if(items.length != 2){
-        iCallback('bad expected count : got '+items.length+' expected 2', E_FAIL);
+  watcher.getDB(function(err, db){
+    db.fetchAll(function(err, items){
+      if(err){
+        iCallback(err, E_FAIL);
       }else{
-        iCallback(null, S_OK);
+        if(items.length != 2){
+          iCallback('bad expected count : got '+items.length+' expected 2', E_FAIL);
+        }else{
+          iCallback(null, S_OK);
+        }
       }
-    }
+    })
   });
 
 }
