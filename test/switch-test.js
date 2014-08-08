@@ -46,15 +46,19 @@ function rmDB(){
 
 console.log('start diff test');
 
-function testWatch(iCallback){
-  console.log('testWatch ');
+function testSave(iCallback){
+  console.log('testSave ');
   
-  watcher.doWatch(function(err){
+  watcher.getDB(function(err, db){
     if(err){
       console.log('KO ',err);
       iCallback(err, E_FAIL);
     }else{
-      iCallback(null, S_OK);
+      db.save({'test_item_1':'truc'}, function(err, callback){
+        db.save({'test_item_2':'bidule'}, function(err, callback){
+          iCallback(null, S_OK);
+        }); 
+      });
     }
   });
   
@@ -132,7 +136,7 @@ function testCheckSwitchDBBis(iCallback){
       if(err){
         iCallback(err, E_FAIL);
       }else{
-        if(items.length != 1){
+        if(items.length != 4){
           iCallback('bad expected count', E_FAIL);
         }else{
           iCallback(null, S_OK);
@@ -160,15 +164,11 @@ async.series(
     copyDb : function(callback){return copyFile(CONFIG_DB_PATH, TMP_CONFIG_DB_PATH, callback);},
     copyDb2 : function(callback){return copyFile(CONFIG_DB_PATH2, TMP_CONFIG_DB_PATH2, callback);},
     loadDb : function(callback){return loadDb(callback);},
-    watch: function(callback){return testWatch(callback);},
+    save: function(callback){return testSave(callback);},
     switch: function(callback){return testSwitch(callback);},
     check: function(callback){return testCheckDB(callback);},
-    checkSwitch: function(callback){return testCheckSwitchDB(callback);},
-    loadDb2 : function(callback){return loadDb2(callback);},
-    watchBis: function(callback){return testWatch(callback);},
-    switchBis: function(callback){return testSwitch(callback);},
-    checkBis: function(callback){return testCheckDBBis(callback);},
-    checkSwitchBis: function(callback){return testCheckSwitchDBBis(callback);},
+    checkSwitch: function(callback){return testCheckSwitchDB(callback);},    
+    saveBis: function(callback){return testSave(callback);},
     diff: function(callback){return testDiff(callback);}
   },
 
