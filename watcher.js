@@ -51,20 +51,54 @@ function configure(options){
 
   if('undefined' != typeof options.configDB){
     this._configDB = require('itemTagsDB')({database: options.configDB});
-    this._configDB.fetchItemsSharingTags(['watcherConfig'], function(err, items){
-      if(!err && items && items.length == 1){
-        var watcherConfig = items[0].getTagValue('watcherConfig');
-        if(watcherConfig && watcherConfig.database){
-          self._itDB = require('itemTagsDB')({database: watcherConfig.database});
-          self._itDBSwitch = require('itemTagsDB')({database: watcherConfig.switchDatabase});
-          self.emit('ready');
+
+    function retrieveDBs(iCallback){
+      self._configDB.fetchItemsSharingTags(['watcherConfig'], function(err, items){
+        if(!err && items && items.length == 1){
+          var watcherConfig = items[0].getTagValue('watcherConfig');
+          if(watcherConfig && watcherConfig.database){
+            self._itDB = require('itemTagsDB')({database: watcherConfig.database});
+            self._itDBSwitch = require('itemTagsDB')({database: watcherConfig.switchDatabase});
+            iCallback();
+          }else{
+            iCallback('error');
+          }
         }else{
-          self.emit('error');
+          iCallback('error');
         }
-      }else{
-        self.emit('error');
+      });
+    }
+
+    function retrieveWatchTags(iCallback){
+      self._configDB.fetchItemsSharingTags(['watchTags'], function(err, items){
+        if(!err && items){
+          var watchTags = [];
+          for(var iWatchTags in items){
+            var currentTags = items[iWatchTags].getTagValue('watchTags')['tagsToWatch'];
+            if(currentTags && currentTags.length>=1)
+              watchTags = watchTags.concat(currentTags);
+          }
+          self._watchTags = watchTags;
+          iCallback();
+        }else{
+          iCallback('error');
+        }
+      });
+    }
+
+    Async.series(
+      [
+        retrieveDBs,
+        retrieveWatchTags
+      ], 
+      function(err){
+        if(err)
+          self.emit('error');
+        else
+          self.emit('ready');
       }
-    });
+    );
+    
   }
 }
 
@@ -77,6 +111,7 @@ function getSwitchDB(iCallback){
 }
 
 function doDiff(iCallback){
+  var self = this;
   if(!this._itDB){
     if(iCallback) iCallback('no db');
   }
@@ -84,22 +119,45 @@ function doDiff(iCallback){
     if(iCallback) iCallback('no switch db');
   }
 
-  var fileUriMatchFilter = JSON.stringify({"@file":{"uri":"/"}});
-  this._itDB.diffDb(this._itDBSwitch,fileUriMatchFilter, function(err, report){
-    if(err){
-      if(iCallback) iCallback(err);
-      return;
+  function generateDiffDbForTag(iTag){
+    return function(iCallback){
+      var tagMatchFilter = {};
+      tagMatchFilter["@"+iTag] = "/";
+      self._itDB.diffDb(self._itDBSwitch, tagMatchFilter, function(err, report){
+        if(err)
+          iCallback(err);
+        else{
+          diffReportForTag = {
+            'tag': iTag,
+            'addedItems': report['onlyDB1'],
+            'removedItems': report['onlyDB2']
+          };
+          iCallback(null, diffReportForTag);
+        }
+      });
     }
+  }
 
-    var diffReport = {};
+  var diffDbForTagFunctions = [];
+  for(var iWatchTag in self._watchTags){
+    var iTag = self._watchTags[iWatchTag];
+    diffDbForTagFunctions.push(generateDiffDbForTag(iTag));
+  }
 
-    if(report){
-      diffReport['addedItems'] = report['onlyDB1'];
-      diffReport['removedItems'] = report['onlyDB2'];
-    }
-    
-    if(iCallback) iCallback(null, diffReport);
-  });
+  if(diffDbForTagFunctions.length >= 1){
+    Async.series(
+      diffDbForTagFunctions,
+      function(err, reports){
+        if(err){
+          if(iCallback) iCallback('error while diffs');
+        }else{
+          if(iCallback) iCallback(null, reports);
+        }
+      }
+    );  
+  }else{
+    iCallback(null, {});
+  }
 }
 
 function doSwitch(iCallback) {  
