@@ -74,9 +74,9 @@ function configure(options){
         if(!err && items){
           var watchTags = [];
           for(var iWatchTags in items){
-            var currentTags = items[iWatchTags].getTagValue('watchTags')['tagsToWatch'];
-            if(currentTags && currentTags.length>=1)
-              watchTags = watchTags.concat(currentTags);
+            var currentWatchTag = items[iWatchTags].getTagValue('watchTags');
+            if(currentWatchTag)
+              watchTags = watchTags.concat(currentWatchTag);
           }
           self._watchTags = watchTags;
           iCallback();
@@ -119,7 +119,7 @@ function doDiff(iCallback){
     if(iCallback) iCallback('no switch db');
   }
 
-  function generateDiffDbForTag(iTag){
+  function generateDiffDbForTag(iTag, iNotifier){
     return function(iCallback){
       var tagMatchFilter = {};
       tagMatchFilter["@"+iTag] = "/";
@@ -129,6 +129,7 @@ function doDiff(iCallback){
         else{
           diffReportForTag = {
             'tag': iTag,
+            'notifier': iNotifier,
             'addedItems': report['onlyDB1'],
             'removedItems': report['onlyDB2']
           };
@@ -140,8 +141,12 @@ function doDiff(iCallback){
 
   var diffDbForTagFunctions = [];
   for(var iWatchTag in self._watchTags){
-    var iTag = self._watchTags[iWatchTag];
-    diffDbForTagFunctions.push(generateDiffDbForTag(iTag));
+    var iCurrentWatchTag = self._watchTags[iWatchTag];
+    var currentNotifier = iCurrentWatchTag['notifier'];
+    for(var iTag in iCurrentWatchTag['tagsToWatch']){
+      var currentTag = iCurrentWatchTag['tagsToWatch'][iTag];
+      diffDbForTagFunctions.push(generateDiffDbForTag(currentTag, currentNotifier));
+    }
   }
 
   if(diffDbForTagFunctions.length >= 1){
